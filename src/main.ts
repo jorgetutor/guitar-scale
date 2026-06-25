@@ -29,21 +29,20 @@ function loadState(): AppState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
     const p = JSON.parse(raw) as Partial<AppState>;
-    const strings = typeof p.strings === 'number' ? clamp(p.strings, 4, 8) : 6;
+    const strings = typeof p.strings === 'number' && Number.isInteger(p.strings) ? clamp(p.strings, 4, 8) : 6;
     const intervals = Array.isArray(p.intervals)
       ? (p.intervals as number[]).filter(n => Number.isInteger(n) && n >= 0 && n < 12)
       : [...SCALES['Major']];
     if (!intervals.includes(0)) intervals.unshift(0);
     const base = defaultTuning(strings);
-    const tuning = base.map((def, i) =>
-      Array.isArray(p.tuning) && typeof (p.tuning as number[])[i] === 'number'
-        ? ((p.tuning as number[])[i] + 12) % 12
-        : def
-    );
+    const tuning = base.map((def, i) => {
+      const v = Array.isArray(p.tuning) ? (p.tuning as number[])[i] : undefined;
+      return typeof v === 'number' && Number.isInteger(v) ? ((v + 12) % 12) : def;
+    });
     return {
-      root:      typeof p.root === 'number' ? p.root % 12 : 0,
+      root:      typeof p.root === 'number' && Number.isInteger(p.root) ? ((p.root % 12) + 12) % 12 : 0,
       intervals: intervals.sort((a, b) => a - b),
-      frets:     typeof p.frets === 'number' ? clamp(p.frets, 1, 36) : 24,
+      frets:     typeof p.frets === 'number' && Number.isInteger(p.frets) ? clamp(p.frets, 1, 36) : 24,
       strings,
       tuning,
     };
@@ -152,20 +151,18 @@ function buildScaleNotes(s: AppState): string {
     <section class="scale-notes">
       <h2>Scale Notes</h2>
       <div class="note-checkboxes">${boxes}</div>
-      ${buildIntervalSteps(s)}
+      ${buildIntervalSteps(s, names)}
     </section>
   `;
 }
 
-function buildIntervalSteps(s: AppState): string {
+function buildIntervalSteps(s: AppState, names: string[]): string {
   if (s.intervals.length < 2) return '';
-  const sorted = [...s.intervals].sort((a, b) => a - b);
-  const steps = consecutiveSteps(sorted);
-  const names = noteNamesFromRoot(s.root);
+  const steps = consecutiveSteps(s.intervals);
 
   const parts: string[] = [];
-  for (let i = 0; i < sorted.length; i++) {
-    const iv     = sorted[i];
+  for (let i = 0; i < s.intervals.length; i++) {
+    const iv     = s.intervals[i];
     const isRoot = iv === 0;
     parts.push(`<div class="step-note${isRoot ? ' root' : ''}"><span class="sn-name">${names[iv]}</span><span class="sn-interval">${INTERVAL_NAMES[iv]}</span></div>`);
     parts.push(`<div class="step-arrow"><span class="sa-arrow">→</span><span class="sa-label">${steps[i].label}</span></div>`);
@@ -300,6 +297,7 @@ const TUNING_PRESETS: Record<string, number[]> = {
 };
 
 function matchesPreset(tuning: number[], strings: number, preset: number[]): boolean {
+  if (strings < preset.length) return false;
   const overlap = Math.min(strings, preset.length);
   for (let i = 0; i < overlap; i++) {
     if (tuning[strings - 1 - i] !== preset[preset.length - 1 - i]) return false;

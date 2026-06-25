@@ -43,12 +43,16 @@ export function intervalName(semitones: number): string {
   return INTERVAL_NAMES[((semitones % 12) + 12) % 12];
 }
 
+const SCALE_FINGERPRINTS = new Map(
+  Object.entries(SCALES).map(([name, iv]) => [
+    [...iv].sort((a, b) => a - b).join(','),
+    name,
+  ])
+);
+
 export function matchScale(intervals: readonly number[]): string {
   const key = [...intervals].sort((a, b) => a - b).join(',');
-  for (const [name, iv] of Object.entries(SCALES)) {
-    if ([...iv].sort((a, b) => a - b).join(',') === key) return name;
-  }
-  return 'Custom';
+  return SCALE_FINGERPRINTS.get(key) ?? 'Custom';
 }
 
 export type Step = { label: string; semitones: number };
