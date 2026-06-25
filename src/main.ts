@@ -175,7 +175,8 @@ function buildIntervalSteps(s: AppState, names: string[]): string {
 
 // ── Fretboard SVG ─────────────────────────────────────────────────────────────
 
-const FRET_W   = 40;
+const FRET_W_MAX = 60; // first fret width (widest, near nut)
+const FRET_W_MIN = 30; // last fret width (narrowest, near body)
 const STR_SP   = 26;
 const L_PAD    = 52;
 const NUT_W    = 6;
@@ -204,19 +205,27 @@ function buildSVG(s: AppState): string {
   const {root, intervals, frets, strings, tuning} = s;
   const active = new Set(intervals);
 
-  const W = L_PAD + NUT_W + frets * FRET_W + 10;
+  // Precompute cumulative fret bar positions from the nut.
+  // Fret widths taper linearly from FRET_W_MAX (near nut) to FRET_W_MIN (near body).
+  const cumX: number[] = [0];
+  for (let f = 1; f <= frets; f++) {
+    const t = frets > 1 ? (f - 1) / (frets - 1) : 0;
+    cumX.push(cumX[f - 1] + FRET_W_MAX - (FRET_W_MAX - FRET_W_MIN) * t);
+  }
+
+  const W = L_PAD + NUT_W + cumX[frets] + 10;
   const H = TOP_PAD + (strings - 1) * STR_SP + BOT_PAD;
 
   const sY   = (di: number) => TOP_PAD + di * STR_SP;
   const fX   = (f: number)  => f === 0
     ? L_PAD / 2
-    : L_PAD + NUT_W + (f - 0.5) * FRET_W;
-  const barX = (f: number)  => L_PAD + NUT_W + f * FRET_W;
+    : L_PAD + NUT_W + (cumX[f - 1] + cumX[f]) / 2;
+  const barX = (f: number)  => L_PAD + NUT_W + cumX[f];
 
   const p: string[] = [];
 
   // Board body
-  p.push(`<rect x="${L_PAD+NUT_W}" y="${TOP_PAD-4}" width="${frets*FRET_W}" height="${(strings-1)*STR_SP+8}" fill="#3d1c02" rx="2"/>`);
+  p.push(`<rect x="${L_PAD+NUT_W}" y="${TOP_PAD-4}" width="${cumX[frets]}" height="${(strings-1)*STR_SP+8}" fill="#3d1c02" rx="2"/>`);
 
   // Fret bars
   for (let f = 1; f <= frets; f++) {
@@ -243,7 +252,7 @@ function buildSVG(s: AppState): string {
   for (let di = 0; di < strings; di++) {
     const y  = sY(di);
     const sw = 0.7 + (di / Math.max(strings - 1, 1)) * 1.8;
-    p.push(`<line x1="${L_PAD+NUT_W}" y1="${y}" x2="${L_PAD+NUT_W+frets*FRET_W}" y2="${y}" stroke="#aaa" stroke-width="${sw}"/>`);
+    p.push(`<line x1="${L_PAD+NUT_W}" y1="${y}" x2="${L_PAD+NUT_W+cumX[frets]}" y2="${y}" stroke="#aaa" stroke-width="${sw}"/>`);
     p.push(`<line x1="${L_PAD/2+6}" y1="${y}" x2="${L_PAD}" y2="${y}" stroke="#aaa" stroke-width="${sw}" stroke-dasharray="3 2"/>`);
   }
 
@@ -282,7 +291,7 @@ function buildSVG(s: AppState): string {
     }
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block">${p.join('')}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto">${p.join('')}</svg>`;
 }
 
 // ── Tuning Presets ───────────────────────────────────────────────────────────

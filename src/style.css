@@ -322,7 +322,7 @@ input[type="number"] { -moz-appearance: textfield; }
   min-width: 600px;
 }
 
-.fretboard-scroll { overflow-x: auto; padding-bottom: 4px; }
+.fretboard-scroll { overflow-x: auto; }
 
 /* Tuning (inside fretboard section) */
 .tuning-section {
