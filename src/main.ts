@@ -66,27 +66,37 @@ function render(): void {
 }
 
 function buildApp(s: AppState): string {
-  const scaleName = matchScale(s.intervals);
   return `
     <div class="app-container">
       <div class="app-header">
         <img src="favicon.svg" class="app-icon" alt="" width="48" height="48"/>
         <h1>Guitar Scale Visualizer</h1>
       </div>
-      ${buildControls(s, scaleName)}
-      ${buildScaleNotes(s)}
       ${buildFretboardSection(s)}
+      ${buildScaleNotes(s)}
       <footer class="app-footer">
         ${buildLegend()}
+        ${buildScaleSimilarityTable(s)}
         <div class="footer-credit">By <a href="https://jorgetutor.net" target="_blank" rel="noopener">jorgetutor.net</a></div>
       </footer>
     </div>
   `;
 }
 
-// ── Controls ─────────────────────────────────────────────────────────────────
+// ── Scale Notes ───────────────────────────────────────────────────────────────
 
-function buildControls(s: AppState, scaleName: string): string {
+function buildScaleNotes(s: AppState): string {
+  const scaleName = matchScale(s.intervals);
+  const active = new Set(s.intervals);
+  const names = noteNamesFromRoot(s.root);
+
+  const sorted = [...s.intervals].sort((a, b) => a - b);
+  const steps = consecutiveSteps(s.intervals);
+  const stepBefore = new Map<number, string>();
+  for (let i = 1; i < sorted.length; i++) {
+    stepBefore.set(sorted[i], steps[i - 1].label);
+  }
+
   const keyOpts = KEY_NAMES.map((n, i) =>
     `<option value="${i}"${i === s.root ? ' selected' : ''}>${n}</option>`
   ).join('');
@@ -97,53 +107,6 @@ function buildControls(s: AppState, scaleName: string): string {
       `<option value="${name}"${name === scaleName ? ' selected' : ''}>${name}</option>`
     ),
   ].join('');
-
-  return `
-    <section class="controls">
-      <div class="control-group">
-        <label for="key-sel">Key</label>
-        <div class="ctrl-stepper">
-          <button id="key-dec" class="ctrl-btn">−</button>
-          <select id="key-sel">${keyOpts}</select>
-          <button id="key-inc" class="ctrl-btn">+</button>
-        </div>
-      </div>
-      <div class="control-group">
-        <label for="scale-sel">Scale</label>
-        <select id="scale-sel">${scaleOpts}</select>
-      </div>
-      <div class="control-group">
-        <label for="frets-in">Frets</label>
-        <div class="ctrl-stepper">
-          <button id="frets-dec" class="ctrl-btn">−</button>
-          <input type="number" id="frets-in" value="${s.frets}" min="1" max="36"/>
-          <button id="frets-inc" class="ctrl-btn">+</button>
-        </div>
-      </div>
-      <div class="control-group">
-        <label for="strings-in">Strings</label>
-        <div class="ctrl-stepper">
-          <button id="strings-dec" class="ctrl-btn">−</button>
-          <input type="number" id="strings-in" value="${s.strings}" min="4" max="8"/>
-          <button id="strings-inc" class="ctrl-btn">+</button>
-        </div>
-      </div>
-    </section>
-  `;
-}
-
-// ── Scale Notes ───────────────────────────────────────────────────────────────
-
-function buildScaleNotes(s: AppState): string {
-  const active = new Set(s.intervals);
-  const names = noteNamesFromRoot(s.root);
-
-  const sorted = [...s.intervals].sort((a, b) => a - b);
-  const steps = consecutiveSteps(s.intervals);
-  const stepBefore = new Map<number, string>();
-  for (let i = 1; i < sorted.length; i++) {
-    stepBefore.set(sorted[i], steps[i - 1].label);
-  }
 
   const boxes = Array.from({length: 12}, (_, i) => {
     const isActive = active.has(i);
@@ -162,8 +125,25 @@ function buildScaleNotes(s: AppState): string {
 
   return `
     <section class="scale-notes">
-      <h2>Scale Notes</h2>
-      <div class="note-checkboxes">${boxes}</div>
+      <div class="scale-notes-row">
+        <div class="control-group">
+          <label for="key-sel">Key</label>
+          <div class="ctrl-stepper">
+            <button id="key-dec" class="ctrl-btn">−</button>
+            <select id="key-sel">${keyOpts}</select>
+            <button id="key-inc" class="ctrl-btn">+</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <label for="scale-sel">Scale</label>
+          <select id="scale-sel">${scaleOpts}</select>
+        </div>
+        <div class="scale-notes-sep"></div>
+        <div class="scale-notes-checks">
+          <h2>Scale Notes</h2>
+          <div class="note-checkboxes">${boxes}</div>
+        </div>
+      </div>
     </section>
   `;
 }
@@ -186,12 +166,12 @@ function buildFretboardSection(s: AppState): string {
   const zoomed = fretboardZoomed;
   return `
     <section class="fretboard-section${zoomed ? ' fretboard-zoomed' : ''}">
+      ${zoomed ? '' : buildTuning(s)}
       <div class="fretboard-header">
         <h2>Fretboard</h2>
-        <button id="fretboard-zoom" class="zoom-btn" title="${zoomed ? 'Exit fullscreen' : 'Fullscreen'}">${zoomed ? ICON_COMPRESS : ICON_EXPAND}</button>
+        <button id="fretboard-zoom" class="zoom-btn" title="${zoomed ? 'Exit fullscreen' : 'Fullscreen'}"><span>Zoom</span>${zoomed ? ICON_COMPRESS : ICON_EXPAND}</button>
       </div>
       <div class="fretboard-scroll">${buildSVG(s)}</div>
-      ${zoomed ? '' : buildTuning(s)}
     </section>
   `;
 }
@@ -360,8 +340,66 @@ function buildTuning(s: AppState): string {
               }).join('')}
             </div>`).join('')}
         </div>
+        <div class="tuning-fretboard-opts">
+          <div class="control-group">
+            <label for="frets-in">Frets</label>
+            <div class="ctrl-stepper">
+              <button id="frets-dec" class="ctrl-btn">−</button>
+              <input type="number" id="frets-in" value="${s.frets}" min="1" max="36"/>
+              <button id="frets-inc" class="ctrl-btn">+</button>
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="strings-in">Strings</label>
+            <div class="ctrl-stepper">
+              <button id="strings-dec" class="ctrl-btn">−</button>
+              <input type="number" id="strings-in" value="${s.strings}" min="4" max="8"/>
+              <button id="strings-inc" class="ctrl-btn">+</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>`;
+}
+
+// ── Scale Similarity Table ────────────────────────────────────────────────────
+
+function buildScaleSimilarityTable(s: AppState): string {
+  const activeSet = new Set(s.intervals);
+  const currentScale = matchScale(s.intervals);
+
+  const headerCells = INTERVAL_NAMES.map((name, i) => {
+    const cls = i === 0 ? ' col-root' : activeSet.has(i) ? ' col-active' : '';
+    return `<th class="sct-ih${cls}">${name}</th>`;
+  }).join('');
+
+  const rows = Object.entries(SCALES).map(([name, intervals]) => {
+    const ivSet = new Set(intervals);
+    const isCurrent = name === currentScale;
+
+    const cells = Array.from({length: 12}, (_, i) => {
+      const present = ivSet.has(i);
+      if (!present) return `<td class="sct-cell"></td>`;
+      const cls = i === 0 ? 'sct-root' : activeSet.has(i) ? 'sct-match' : 'sct-present';
+      return `<td class="sct-cell ${cls}">●</td>`;
+    }).join('');
+
+    return `<tr class="sct-row${isCurrent ? ' sct-current' : ''}">
+      <th class="sct-sh">${name}</th>${cells}
+    </tr>`;
+  }).join('');
+
+  return `
+    <div class="scale-compare">
+      <h3>Scale Similarities</h3>
+      <div class="sct-wrap">
+        <table class="sct">
+          <thead><tr><th class="sct-corner"></th>${headerCells}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
 }
 
 // ── Interval Legend ───────────────────────────────────────────────────────────

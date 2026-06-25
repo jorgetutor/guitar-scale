@@ -12,32 +12,30 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-.github-fork-ribbon {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 150px;
-  height: 150px;
-  overflow: hidden;
-  z-index: 9999;
+body:has(.fretboard-zoomed) .github-corner {
+  display: none;
 }
 
-.github-fork-ribbon::before {
-  content: 'Fork me on GitHub';
-  position: absolute;
-  top: 36px;
-  right: -36px;
-  width: 170px;
-  padding: 6px 0;
-  background: var(--accent);
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-align: center;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  transform: rotate(45deg);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+.github-corner {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 9999;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.github-corner:hover {
+  color: var(--text);
+  border-color: var(--text-dim);
 }
 
 body {
@@ -152,7 +150,37 @@ input[type="number"] { -moz-appearance: textfield; }
 
 /* Scale Notes */
 .scale-notes {
-  padding: 4px 0;
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--border);
+}
+
+.scale-notes-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  overflow-x: auto;
+}
+
+.scale-notes-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+.scale-notes-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scale-notes-checks h2 { margin-bottom: 0; }
+
+.scale-notes-row .note-checkboxes {
+  margin-bottom: 0;
+  flex-wrap: nowrap;
 }
 
 .note-checkboxes {
@@ -239,17 +267,22 @@ input[type="number"] { -moz-appearance: textfield; }
 .fretboard-header h2 { margin-bottom: 0; }
 
 .zoom-btn {
+  margin-left: auto;
   background: transparent;
   color: var(--text-dim);
   border: 1px solid var(--border);
   border-radius: 6px;
-  width: 28px;
   height: 28px;
   display: flex;
   align-items: center;
+  gap: 5px;
   justify-content: center;
   cursor: pointer;
-  padding: 0;
+  padding: 0 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   transition: color 0.15s, border-color 0.15s;
 }
 
@@ -283,9 +316,9 @@ input[type="number"] { -moz-appearance: textfield; }
 
 /* Tuning (inside fretboard section) */
 .tuning-section {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 }
 
 .tuning-row {
@@ -392,6 +425,16 @@ input[type="number"] { -moz-appearance: textfield; }
   background: rgba(34, 211, 238, 0.12);
 }
 
+.tuning-fretboard-opts {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+  align-items: flex-end;
+}
+
 .app-footer {
   padding: 1.5rem 0 0.5rem;
   font-size: 0.8rem;
@@ -445,3 +488,67 @@ input[type="number"] { -moz-appearance: textfield; }
   font-size: 0.68rem;
   color: var(--text-dim);
 }
+
+/* Scale Similarity Table */
+.scale-compare {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.sct-wrap { overflow-x: auto; }
+
+.sct {
+  border-collapse: collapse;
+  font-family: monospace;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.sct th, .sct td {
+  padding: 3px 4px;
+  border: 1px solid rgba(55, 65, 81, 0.5);
+  text-align: center;
+}
+
+.sct-corner {
+  min-width: 130px;
+  text-align: left;
+  background: transparent;
+  border: none;
+}
+
+.sct-sh {
+  text-align: left;
+  color: var(--text-dim);
+  font-weight: 500;
+  padding-left: 6px;
+  font-size: 0.68rem;
+}
+
+.sct-ih {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  min-width: 28px;
+  background: var(--surface);
+}
+
+.sct-ih.col-active { color: var(--note-clr); }
+.sct-ih.col-root   { color: var(--root-clr); }
+
+.sct-row:hover td,
+.sct-row:hover th { background: rgba(255, 255, 255, 0.03); }
+
+.sct-current .sct-sh {
+  color: var(--text);
+  font-weight: 700;
+}
+.sct-current td,
+.sct-current th { background: rgba(99, 102, 241, 0.1); }
+
+.sct-cell { font-size: 0.6rem; }
+.sct-root    { color: var(--root-clr); }
+.sct-match   { color: var(--note-clr); }
+.sct-present { color: #4b5563; }
