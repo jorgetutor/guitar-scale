@@ -214,50 +214,57 @@ input[type="number"] { -moz-appearance: textfield; }
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 2px;
-  padding: 8px 10px;
-  background: var(--surface2);
-  border-radius: 7px;
+  row-gap: 6px;
+  padding: 10px 2px 6px;
+  border-top: 1px solid rgba(255,255,255,0.07);
 }
 
 .step-note {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 4px;
   min-width: 32px;
-  padding: 2px 4px;
+  padding: 0 4px;
 }
 
 .sn-name {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-weight: 700;
   font-family: monospace;
   color: var(--note-clr);
+  letter-spacing: 0.02em;
 }
 
 .sn-interval {
   font-size: 0.6rem;
   color: var(--text-dim);
   font-family: monospace;
+  opacity: 0.75;
 }
 
 .step-note.root .sn-name { color: var(--root-clr); }
-.step-note.root .sn-interval { color: var(--root-clr); }
+.step-note.root .sn-interval { color: var(--root-clr); opacity: 1; }
 
 .step-arrow {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 1px;
-  color: var(--text-dim);
+  gap: 4px;
+  padding: 0 2px;
 }
 
-.sa-arrow { font-size: 0.7rem; line-height: 1; }
+.sa-arrow {
+  font-size: 0.6rem;
+  line-height: 1;
+  color: rgba(156, 163, 175, 0.3);
+}
 .sa-label {
   font-size: 0.6rem;
   font-family: monospace;
   color: var(--accent);
   white-space: nowrap;
+  opacity: 0.7;
 }
 
 /* Fretboard */
