@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="#111827"/>
+  <!-- Fretboard wood -->
+  <rect x="5" y="7" width="22" height="18" rx="1.5" fill="#3d1c02"/>
+  <!-- Nut (ivory) -->
+  <rect x="5" y="7" width="2.5" height="18" rx="1" fill="#ede0c4"/>
+  <!-- Fret bar -->
+  <line x1="18" y1="7" x2="18" y2="25" stroke="#6b6b6b" stroke-width="1.5"/>
+  <!-- Strings -->
+  <line x1="5" y1="13" x2="27" y2="13" stroke="#aaa" stroke-width="0.9"/>
+  <line x1="5" y1="19" x2="27" y2="19" stroke="#aaa" stroke-width="1.4"/>
+  <!-- Root note (amber) -->
+  <circle cx="11.5" cy="19" r="4" fill="#fbbf24"/>
+  <!-- Scale note (cyan) -->
+  <circle cx="22.5" cy="13" r="4" fill="#22d3ee"/>
+</svg>
