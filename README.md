@@ -2,6 +2,8 @@
 
 An interactive fretboard visualizer for exploring guitar scales and modes. Select a root note and a scale (Major, Minor, pentatonic, modes, and more) to see the notes highlighted across a fully configurable fretboard.
 
+By [Jorge Tutor](https://jorgetutor.net).
+
 ## Features
 
 - 20+ scales and modes (Major, Natural/Harmonic/Melodic Minor, all church modes, pentatonics, Blues, Whole Tone, Diminished, Chromatic)

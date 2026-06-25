@@ -427,3 +427,19 @@ input[type="number"] { -moz-appearance: textfield; }
   color: var(--note-clr);
   background: rgba(34, 211, 238, 0.12);
 }
+
+.app-footer {
+  text-align: right;
+  padding: 1.5rem 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-dim, #888);
+}
+
+.app-footer a {
+  color: var(--accent, #6366f1);
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  text-decoration: underline;
+}

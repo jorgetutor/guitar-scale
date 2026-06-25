@@ -77,6 +77,9 @@ function buildApp(s: AppState): string {
       ${buildControls(s, scaleName)}
       ${buildScaleNotes(s)}
       ${buildFretboardSection(s)}
+      <footer class="app-footer">
+        By <a href="https://jorgetutor.net" target="_blank" rel="noopener">jorgetutor.net</a>
+      </footer>
     </div>
   `;
 }
