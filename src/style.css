@@ -12,6 +12,34 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+.github-fork-ribbon {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 150px;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.github-fork-ribbon::before {
+  content: 'Fork me on GitHub';
+  position: absolute;
+  top: 36px;
+  right: -36px;
+  width: 170px;
+  padding: 6px 0;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transform: rotate(45deg);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
 body {
   background: var(--bg);
   color: var(--text);
