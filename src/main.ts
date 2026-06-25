@@ -2,6 +2,7 @@ import './style.css';
 import {
   noteName, noteNamesFromRoot, KEY_NAMES, SCALES, INTERVAL_NAMES,
   matchScale, consecutiveSteps, fretPC, defaultTuning,
+  deriveScaleChords, type Chord,
 } from './theory';
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -74,6 +75,7 @@ function buildApp(s: AppState): string {
       </div>
       ${buildFretboardSection(s)}
       ${buildScaleNotes(s)}
+      ${buildChordsSection(s)}
       <footer class="app-footer">
         ${buildLegend()}
         ${buildScaleSimilarityTable(s)}
@@ -272,6 +274,157 @@ function buildSVG(s: AppState): string {
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto">${p.join('')}</svg>`;
+}
+
+// ── Chord Voicing ─────────────────────────────────────────────────────────────
+
+function findVoicing(
+  chordNotes: number[], strings: number, tuning: number[], chordRoot: number
+): Array<number | null> {
+  const noteSet = new Set(chordNotes);
+  const WINDOW = 4, MAX_START = 7;
+  let bestVoicing: Array<number | null> = Array(strings).fill(null);
+  let bestScore = [-1, -1, -1, Infinity] as [number, number, number, number];
+
+  for (let startFret = 0; startFret <= MAX_START; startFret++) {
+    const voicing: Array<number | null> = [];
+    for (let si = 0; si < strings; si++) {
+      const openPC = tuning[si];
+      let chosen: number | null = null;
+      if (startFret === 0 && noteSet.has(openPC % 12)) { chosen = 0; }
+      if (chosen === null) {
+        const lo = startFret === 0 ? 1 : startFret;
+        for (let f = lo; f <= startFret + WINDOW - 1; f++) {
+          if (noteSet.has((openPC + f) % 12)) { chosen = f; break; }
+        }
+      }
+      voicing.push(chosen);
+    }
+
+    const covered = new Set<number>();
+    let played = 0, rootInBass = false, fretSum = 0, bassFound = false;
+    for (let si = 0; si < strings; si++) {
+      const f = voicing[si];
+      if (f === null) continue;
+      played++; fretSum += f;
+      const pc = (tuning[si] + f) % 12;
+      covered.add(pc);
+      if (!bassFound) { rootInBass = (pc === chordRoot); bassFound = true; }
+    }
+
+    const allCovered = chordNotes.every(n => covered.has(n)) ? 1 : 0;
+    const score: [number, number, number, number] = [allCovered, played, rootInBass ? 1 : 0, fretSum];
+    const better =
+      score[0] > bestScore[0] ||
+      (score[0] === bestScore[0] && score[1] > bestScore[1]) ||
+      (score[0] === bestScore[0] && score[1] === bestScore[1] && score[2] > bestScore[2]) ||
+      (score[0] === bestScore[0] && score[1] === bestScore[1] && score[2] === bestScore[2] && score[3] < bestScore[3]);
+    if (better) { bestVoicing = voicing; bestScore = score; }
+  }
+  return bestVoicing;
+}
+
+function buildChordDiagram(chord: Chord, strings: number, tuning: number[]): string {
+  const voicing = findVoicing(chord.notes, strings, tuning, chord.rootPc);
+
+  const STR_GAP   = Math.max(12, Math.min(18, Math.round(90 / strings)));
+  const FRET_GAP  = 16;
+  const FRETS_SHOWN = 4;
+  const LEFT_PAD  = 18;
+  const TOP_PAD   = 22;
+  const BOT_PAD   = 8;
+
+  const W = LEFT_PAD + STR_GAP * (strings - 1) + 12;
+  const H = TOP_PAD + FRET_GAP * FRETS_SHOWN + BOT_PAD;
+
+  const frettedFrets = voicing.filter((f): f is number => f !== null && f > 0);
+  const maxFret = frettedFrets.length > 0 ? Math.max(...frettedFrets) : 0;
+  const startFret = maxFret <= FRETS_SHOWN ? 1 : (frettedFrets.length > 0 ? Math.min(...frettedFrets) : 1);
+  const showLabel = startFret > 1;
+
+  const p: string[] = [];
+
+  // String lines
+  for (let si = 0; si < strings; si++) {
+    const x = LEFT_PAD + si * STR_GAP;
+    p.push(`<line x1="${x}" y1="${TOP_PAD}" x2="${x}" y2="${TOP_PAD + FRET_GAP * FRETS_SHOWN}" stroke="var(--text-dim)" stroke-width="1"/>`);
+  }
+
+  // Nut or top fret line
+  const x1 = LEFT_PAD, x2 = LEFT_PAD + (strings - 1) * STR_GAP;
+  if (startFret === 1) {
+    p.push(`<line x1="${x1}" y1="${TOP_PAD}" x2="${x2}" y2="${TOP_PAD}" stroke="var(--text)" stroke-width="3"/>`);
+  }
+
+  // Fret lines
+  for (let row = (startFret === 1 ? 1 : 0); row <= FRETS_SHOWN; row++) {
+    const y = TOP_PAD + row * FRET_GAP;
+    p.push(`<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`);
+  }
+
+  // Fret position label
+  if (showLabel) {
+    const y = TOP_PAD + FRET_GAP / 2;
+    p.push(`<text x="${LEFT_PAD - 4}" y="${y}" text-anchor="end" dominant-baseline="central" font-size="8" fill="var(--text-dim)" font-family="monospace">${startFret}</text>`);
+  }
+
+  // Markers per string
+  for (let si = 0; si < strings; si++) {
+    const x = LEFT_PAD + si * STR_GAP;
+    const f = voicing[si];
+
+    if (f === null) {
+      p.push(`<text x="${x}" y="${TOP_PAD - 8}" text-anchor="middle" dominant-baseline="central" font-size="9" fill="var(--text-dim)" font-family="sans-serif">✕</text>`);
+    } else if (f === 0) {
+      p.push(`<circle cx="${x}" cy="${TOP_PAD - 8}" r="4" fill="none" stroke="var(--text-dim)" stroke-width="1.2"/>`);
+    } else {
+      const row = f - startFret;
+      const dotY = TOP_PAD + row * FRET_GAP + FRET_GAP / 2;
+      const isRoot = ((tuning[si] + f) % 12 === chord.rootPc);
+      const fill = isRoot ? 'var(--root-clr)' : 'var(--note-clr)';
+      p.push(`<circle cx="${x}" cy="${dotY}" r="5" fill="${fill}"/>`);
+    }
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" style="display:block;width:${W}px;height:${H}px">${p.join('')}</svg>`;
+}
+
+// ── Diatonic Chords Section ───────────────────────────────────────────────────
+
+const QUALITY_SUFFIX: Record<string, string> = {
+  major: '', minor: 'm', diminished: '°', augmented: '+', sus2: 'sus2', sus4: 'sus4',
+};
+
+function buildChordsSection(s: AppState): string {
+  const chords = deriveScaleChords(s.root, s.intervals);
+
+  if (chords.length === 0) {
+    return `
+      <section class="chords-section">
+        <h2>Diatonic Chords</h2>
+        <p class="chords-empty">No recognized triads for this scale.</p>
+      </section>`;
+  }
+
+  const cards = chords.map(chord => {
+    const rootName  = noteName(chord.rootPc, s.root);
+    const symbol    = rootName + (QUALITY_SUFFIX[chord.quality] ?? '');
+    const noteNames = chord.notes.map(pc => noteName(pc, s.root)).join(' – ');
+    const diagram   = buildChordDiagram(chord, s.strings, s.tuning);
+    return `<div class="chord-card">
+      <div class="chord-roman">${chord.roman}</div>
+      <div class="chord-symbol">${symbol}</div>
+      <div class="chord-quality">${chord.quality}</div>
+      ${diagram}
+      <div class="chord-notes">${noteNames}</div>
+    </div>`;
+  }).join('');
+
+  return `
+    <section class="chords-section">
+      <h2>Diatonic Chords</h2>
+      <div class="chords-grid">${cards}</div>
+    </section>`;
 }
 
 // ── Tuning Presets ───────────────────────────────────────────────────────────

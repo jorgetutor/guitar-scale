@@ -552,3 +552,34 @@ input[type="number"] { -moz-appearance: textfield; }
 .sct-root    { color: var(--root-clr); }
 .sct-match   { color: var(--note-clr); }
 .sct-present { color: #4b5563; }
+
+/* ── Diatonic Chords ──────────────────────────────────────────────── */
+.chords-section { padding: 10px 0; border-top: 1px solid var(--border); }
+.chords-empty { font-size: 0.78rem; color: var(--text-dim); font-style: italic; }
+.chords-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 4px;
+}
+.chord-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+  transition: border-color 0.15s, background 0.15s;
+  cursor: default;
+}
+.chord-card:hover {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.08);
+}
+.chord-roman  { font-size: 0.68rem; font-weight: 600; color: var(--text-dim); font-family: monospace; }
+.chord-symbol { font-size: 1.15rem; font-weight: 700; color: var(--text); font-family: monospace; line-height: 1; }
+.chord-quality { font-size: 0.6rem; color: var(--text-dim); text-transform: capitalize; }
+.chord-notes  { font-size: 0.65rem; color: var(--note-clr); font-family: monospace; white-space: nowrap; }

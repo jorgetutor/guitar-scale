@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(docker compose *)",
-      "Bash(curl -s http://localhost:5173)"
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(chromium --headless --no-sandbox --screenshot=/tmp/claude-1000/-home-tutor-work-guitar-scales/dffc423f-b5e5-4b6a-9d96-899c25511669/scratchpad/chords-bottom.png --window-size=1400,900 --run-all-compositor-stages-before-draw 'javascript:void\\(window.scrollTo\\(0,99999\\)\\);void\\(0\\);http://localhost:5173/')"
     ]
   }
 }

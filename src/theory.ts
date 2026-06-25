@@ -80,3 +80,64 @@ export function defaultTuning(n: number): number[] {
   while (result.length < n) result.unshift((result[0] - 5 + 12) % 12);
   return result;
 }
+
+// ── Chord Theory ─────────────────────────────────────────────────────────────
+
+export type ChordQuality = 'major' | 'minor' | 'diminished' | 'augmented' | 'sus2' | 'sus4';
+
+export interface Chord {
+  degree: number;
+  rootPc: number;
+  notes: number[];
+  relIntervals: number[];
+  quality: ChordQuality;
+  roman: string;
+}
+
+export function chordQuality(relIntervals: readonly number[]): ChordQuality | null {
+  const a = relIntervals[1], b = relIntervals[2];
+  if (a === 4 && b === 7) return 'major';
+  if (a === 3 && b === 7) return 'minor';
+  if (a === 3 && b === 6) return 'diminished';
+  if (a === 4 && b === 8) return 'augmented';
+  if (a === 2 && b === 7) return 'sus2';
+  if (a === 5 && b === 7) return 'sus4';
+  return null;
+}
+
+const ROMAN_UPPER = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+
+export function deriveScaleChords(root: number, intervals: readonly number[]): Chord[] {
+  const sorted = [...intervals].sort((a, b) => a - b);
+  const n = sorted.length;
+  if (n < 3 || n > 11) return [];
+
+  const chords: Chord[] = [];
+  for (let i = 0; i < n; i++) {
+    const absI  = (root + sorted[i])           % 12;
+    const absI2 = (root + sorted[(i + 2) % n]) % 12;
+    const absI4 = (root + sorted[(i + 4) % n]) % 12;
+
+    if (new Set([absI, absI2, absI4]).size < 3) continue;
+
+    const relI2 = ((absI2 - absI) + 12) % 12;
+    const relI4 = ((absI4 - absI) + 12) % 12;
+    const relIntervals = [0, relI2, relI4].sort((a, b) => a - b);
+
+    const quality = chordQuality(relIntervals);
+    if (quality === null) continue;
+
+    const base = ROMAN_UPPER[i] ?? `${i + 1}`;
+    let roman: string;
+    switch (quality) {
+      case 'major':      roman = base; break;
+      case 'augmented':  roman = `${base}+`; break;
+      case 'minor':      roman = base.toLowerCase(); break;
+      case 'diminished': roman = `${base.toLowerCase()}°`; break;
+      default:           roman = base;
+    }
+
+    chords.push({ degree: i, rootPc: absI, notes: [absI, absI2, absI4], relIntervals, quality, roman });
+  }
+  return chords;
+}
