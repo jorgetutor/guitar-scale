@@ -77,7 +77,8 @@ function buildApp(s: AppState): string {
       ${buildScaleNotes(s)}
       ${buildFretboardSection(s)}
       <footer class="app-footer">
-        By <a href="https://jorgetutor.net" target="_blank" rel="noopener">jorgetutor.net</a>
+        ${buildLegend()}
+        <div class="footer-credit">By <a href="https://jorgetutor.net" target="_blank" rel="noopener">jorgetutor.net</a></div>
       </footer>
     </div>
   `;
@@ -137,40 +138,34 @@ function buildScaleNotes(s: AppState): string {
   const active = new Set(s.intervals);
   const names = noteNamesFromRoot(s.root);
 
-  const boxes = Array.from({length: 12}, (_, i) => `
-    <div class="note-check${i === 0 ? ' root' : ''}">
-      <input type="checkbox" id="n${i}" data-iv="${i}"${active.has(i) ? ' checked' : ''}${i === 0 ? ' disabled' : ''}/>
-      <label for="n${i}">
-        <span class="note-name">${names[i]}</span>
-        <span class="interval-label">${INTERVAL_NAMES[i]}</span>
-      </label>
-    </div>
-  `).join('');
+  const sorted = [...s.intervals].sort((a, b) => a - b);
+  const steps = consecutiveSteps(s.intervals);
+  const stepBefore = new Map<number, string>();
+  for (let i = 1; i < sorted.length; i++) {
+    stepBefore.set(sorted[i], steps[i - 1].label);
+  }
+
+  const boxes = Array.from({length: 12}, (_, i) => {
+    const isActive = active.has(i);
+    const stepLabel = isActive && i !== 0 ? stepBefore.get(i) : undefined;
+    return `
+      <div class="note-check${i === 0 ? ' root' : ''}">
+        <input type="checkbox" id="n${i}" data-iv="${i}"${isActive ? ' checked' : ''}${i === 0 ? ' disabled' : ''}/>
+        <label for="n${i}">
+          <span class="note-name">${names[i]}</span>
+          <span class="interval-label">${INTERVAL_NAMES[i]}</span>
+        </label>
+        ${stepLabel !== undefined ? `<span class="step-size">${stepLabel}</span>` : ''}
+      </div>
+    `;
+  }).join('');
 
   return `
     <section class="scale-notes">
       <h2>Scale Notes</h2>
       <div class="note-checkboxes">${boxes}</div>
-      ${buildIntervalSteps(s, names)}
     </section>
   `;
-}
-
-function buildIntervalSteps(s: AppState, names: string[]): string {
-  if (s.intervals.length < 2) return '';
-  const steps = consecutiveSteps(s.intervals);
-
-  const parts: string[] = [];
-  for (let i = 0; i < s.intervals.length; i++) {
-    const iv     = s.intervals[i];
-    const isRoot = iv === 0;
-    parts.push(`<div class="step-note${isRoot ? ' root' : ''}"><span class="sn-name">${names[iv]}</span><span class="sn-interval">${INTERVAL_NAMES[iv]}</span></div>`);
-    parts.push(`<div class="step-arrow"><span class="sa-arrow">→</span><span class="sa-label">${steps[i].label}</span></div>`);
-  }
-  // Octave root closes the cycle visually
-  parts.push(`<div class="step-note root"><span class="sn-name">${names[0]}</span><span class="sn-interval">Oct</span></div>`);
-
-  return `<div class="interval-steps">${parts.join('')}</div>`;
 }
 
 // ── Fretboard SVG ─────────────────────────────────────────────────────────────
@@ -178,10 +173,10 @@ function buildIntervalSteps(s: AppState, names: string[]): string {
 const FRET_W_MAX = 60; // first fret width (widest, near nut)
 const FRET_W_MIN = 30; // last fret width (narrowest, near body)
 const STR_SP   = 26;
-const L_PAD    = 52;
+const L_PAD    = 68;
 const NUT_W    = 6;
-const TOP_PAD  = 24;
-const BOT_PAD  = 28;
+const TOP_PAD  = 36;
+const BOT_PAD  = 36;
 const NOTE_R   = 10;
 
 const ICON_EXPAND  = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 1 1 1 1 5"/><polyline points="11 1 15 1 15 5"/><polyline points="1 11 1 15 5 15"/><polyline points="15 11 15 15 11 15"/></svg>`;
@@ -277,17 +272,22 @@ function buildSVG(s: AppState): string {
     }
   }
 
-  // Tuning labels left of nut
+  // String number + tuning labels left of nut
   for (let di = 0; di < strings; di++) {
-    const openPC = tuning[strings - 1 - di] ?? 0;
+    const openPC   = tuning[strings - 1 - di] ?? 0;
+    const interval = ((openPC - root) % 12 + 12) % 12;
+    const strNum   = di + 1;
+    p.push(`<text x="12" y="${sY(di)}" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="600" fill="#666" font-family="monospace">${strNum}</text>`);
+    if (active.has(interval)) continue;
     const nn = noteName(openPC, root);
-    p.push(`<text x="${L_PAD-8}" y="${sY(di)}" text-anchor="end" dominant-baseline="central" font-size="13" font-weight="bold" fill="#c8c8c8" font-family="monospace">${nn}</text>`);
+    p.push(`<text x="${L_PAD/2}" y="${sY(di)}" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="bold" fill="#c8c8c8" font-family="monospace">${nn}</text>`);
   }
 
-  // Fret number labels
+  // Fret number labels (top and bottom)
   for (const f of [3,5,7,9,12,15,17,19,21,24]) {
     if (f <= frets) {
-      p.push(`<text x="${fX(f)}" y="${TOP_PAD+(strings-1)*STR_SP+17}" text-anchor="middle" font-size="11" font-weight="600" fill="#999" font-family="monospace">${f}</text>`);
+      p.push(`<text x="${fX(f)}" y="${TOP_PAD-16}" text-anchor="middle" font-size="11" font-weight="600" fill="#999" font-family="monospace">${f}</text>`);
+      p.push(`<text x="${fX(f)}" y="${TOP_PAD+(strings-1)*STR_SP+22}" text-anchor="middle" font-size="11" font-weight="600" fill="#999" font-family="monospace">${f}</text>`);
     }
   }
 
@@ -362,6 +362,33 @@ function buildTuning(s: AppState): string {
         </div>
       </div>
     </div>`;
+}
+
+// ── Interval Legend ───────────────────────────────────────────────────────────
+
+const LEGEND_ENTRIES: readonly [string, string][] = [
+  ['R',  'Root'],
+  ['m2', 'minor 2nd'],
+  ['M2', 'Major 2nd'],
+  ['m3', 'minor 3rd'],
+  ['M3', 'Major 3rd'],
+  ['P4', 'Perfect 4th'],
+  ['TT', 'Tritone'],
+  ['P5', 'Perfect 5th'],
+  ['m6', 'minor 6th'],
+  ['M6', 'Major 6th'],
+  ['m7', 'minor 7th'],
+  ['M7', 'Major 7th'],
+];
+
+function buildLegend(): string {
+  const items = LEGEND_ENTRIES.map(([abbr, name], i) =>
+    `<span class="legend-item${i === 0 ? ' legend-root' : ''}">` +
+    `<span class="legend-abbr">${abbr}</span>` +
+    `<span class="legend-name">${name}</span>` +
+    `</span>`
+  ).join('');
+  return `<div class="interval-legend"><span class="legend-heading">Intervals</span>${items}</div>`;
 }
 
 // ── Event Binding ─────────────────────────────────────────────────────────────
