@@ -17,6 +17,7 @@ export const KEY_NAMES = Array.from({length: 12}, (_, i) =>
 );
 
 export const SCALES: Record<string, readonly number[]> = {
+  // ── Major scale family (diatonic modes) ──
   'Major':              [0,2,4,5,7,9,11],
   'Natural Minor':      [0,2,3,5,7,8,10],
   'Harmonic Minor':     [0,2,3,5,7,8,11],
@@ -26,13 +27,30 @@ export const SCALES: Record<string, readonly number[]> = {
   'Lydian':             [0,2,4,6,7,9,11],
   'Mixolydian':         [0,2,4,5,7,9,10],
   'Locrian':            [0,1,3,5,6,8,10],
+  // ── Pentatonic & blues ──
   'Major Pentatonic':   [0,2,4,7,9],
   'Minor Pentatonic':   [0,3,5,7,10],
   'Blues':              [0,3,5,6,7,10],
+  // ── Symmetric scales ──
   'Chromatic':          [0,1,2,3,4,5,6,7,8,9,10,11],
   'Whole Tone':         [0,2,4,6,8,10],
   'Diminished (H-W)':   [0,1,3,4,6,7,9,10],
   'Diminished (W-H)':   [0,2,3,5,6,8,9,11],
+  // ── Middle Eastern maqamat ──
+  'Makam Hijaz':        [0,1,4,5,7,8,10],
+  'Maqam Hijaz Kar':    [0,1,4,5,7,8,11],
+  'Maqam Nikriz':       [0,2,3,6,7,9,10],
+  'Maqam Suznak':       [0,2,4,5,7,8,11],
+  // ── Chinese pentatonic modes (Gong = Major Pentatonic, Yu = Minor Pentatonic) ──
+  'Shang':              [0,2,5,7,10],
+  'Jiao':               [0,3,5,8,10],
+  'Zhi':                [0,2,5,7,9],
+  // ── Japanese / Okinawan ──
+  'Hirajoshi':          [0,2,3,7,8],
+  'In Sen':             [0,1,5,7,10],
+  'Iwato':              [0,1,5,6,10],
+  'Kumoi':              [0,2,3,7,9],
+  'Ryukyu':             [0,4,5,7,11],
 };
 
 export const INTERVAL_NAMES = [
