@@ -144,10 +144,71 @@ function buildScaleNotes(s: AppState): string {
         <div class="scale-notes-checks">
           <h2>Scale Notes</h2>
           <div class="note-checkboxes">${boxes}</div>
+          <button id="play-scale" class="play-scale-btn" title="Play scale">${ICON_PLAY}<span>Play</span></button>
         </div>
       </div>
     </section>
   `;
+}
+
+// ── Scale Playback ───────────────────────────────────────────────────────────
+
+let audioCtx: AudioContext | null = null;
+let scalePlaying = false;
+
+function getAudioCtx(): AudioContext {
+  if (!audioCtx) audioCtx = new AudioContext();
+  return audioCtx;
+}
+
+function midiToFreq(midi: number): number {
+  return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+function playScale(root: number, intervals: number[]): void {
+  if (scalePlaying) return;
+
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const sorted     = [...intervals].sort((a, b) => a - b);
+  const sequence   = [...sorted, sorted[0] + 12];
+  const baseMidi   = 60 + root;
+  const noteDur    = 0.35;
+  const gap        = 0.38;
+  const startDelay = 0.05;
+
+  const startTime = ctx.currentTime;
+  let t = startTime + startDelay;
+  for (const iv of sequence) {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = midiToFreq(baseMidi + iv);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.25, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + noteDur);
+    osc.start(t);
+    osc.stop(t + noteDur + 0.02);
+
+    const delayMs = (t - startTime) * 1000;
+    setTimeout(() => highlightNote(iv % 12, noteDur * 1000), delayMs);
+
+    t += gap;
+  }
+
+  scalePlaying = true;
+  const totalMs = (startDelay + gap * sequence.length) * 1000;
+  setTimeout(() => { scalePlaying = false; }, totalMs);
+}
+
+function highlightNote(iv: number, durationMs: number): void {
+  const box = document.querySelector<HTMLElement>(`.note-check input[data-iv="${iv}"]`)?.closest<HTMLElement>('.note-check');
+  if (!box) return;
+  box.classList.add('note-playing');
+  setTimeout(() => box.classList.remove('note-playing'), durationMs);
 }
 
 // ── Fretboard SVG ─────────────────────────────────────────────────────────────
@@ -163,6 +224,7 @@ const NOTE_R   = 10;
 
 const ICON_EXPAND  = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 1 1 1 1 5"/><polyline points="11 1 15 1 15 5"/><polyline points="1 11 1 15 5 15"/><polyline points="15 11 15 15 11 15"/></svg>`;
 const ICON_COMPRESS = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 5 5 5 5 1"/><polyline points="15 5 11 5 11 1"/><polyline points="5 15 5 11 1 11"/><polyline points="11 15 11 11 15 11"/></svg>`;
+const ICON_PLAY     = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><polygon points="3 1 15 8 3 15"/></svg>`;
 
 function buildFretboardSection(s: AppState): string {
   const zoomed = fretboardZoomed;
@@ -629,6 +691,8 @@ function bindEvents(): void {
       render();
     });
   });
+
+  on('play-scale', 'click', () => { playScale(state.root, state.intervals); });
 
   on('fretboard-zoom', 'click', () => {
     fretboardZoomed = !fretboardZoomed;

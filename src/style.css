@@ -210,7 +210,7 @@ input[type="number"] { -moz-appearance: textfield; }
   border-radius: 7px;
   border: 2px solid var(--border);
   background: var(--surface2);
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.1s, transform 0.1s;
   user-select: none;
 }
 
@@ -227,6 +227,15 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 
 .note-check.root label { cursor: default; }
+
+.note-check.note-playing label {
+  box-shadow: 0 0 0 3px var(--note-clr);
+  transform: scale(1.08);
+}
+
+.note-check.root.note-playing label {
+  box-shadow: 0 0 0 3px var(--root-clr);
+}
 
 .note-name {
   font-size: 0.9rem;
@@ -251,6 +260,28 @@ input[type="number"] { -moz-appearance: textfield; }
   white-space: nowrap;
   margin-top: 3px;
 }
+
+.play-scale-btn {
+  align-self: flex-start;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.play-scale-btn:hover { color: var(--text); border-color: var(--note-clr); }
 
 /* Fretboard */
 .fretboard-section {
