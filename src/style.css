@@ -603,12 +603,17 @@ input[type="number"] { -moz-appearance: textfield; }
   align-items: center;
   gap: 4px;
   min-width: 80px;
-  transition: border-color 0.15s, background 0.15s;
-  cursor: default;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  cursor: pointer;
 }
 .chord-card:hover {
   border-color: var(--accent);
   background: rgba(99, 102, 241, 0.08);
+}
+.chord-card.chord-playing {
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.16);
+  transform: scale(1.04);
 }
 .chord-roman  { font-size: 0.68rem; font-weight: 600; color: var(--text-dim); font-family: monospace; }
 .chord-symbol { font-size: 1.15rem; font-weight: 700; color: var(--text); font-family: monospace; line-height: 1; }

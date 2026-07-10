@@ -468,12 +468,12 @@ function buildChordsSection(s: AppState): string {
       </section>`;
   }
 
-  const cards = chords.map(chord => {
+  const cards = chords.map((chord, i) => {
     const rootName  = noteName(chord.rootPc, s.root);
     const symbol    = rootName + (QUALITY_SUFFIX[chord.quality] ?? '');
     const noteNames = chord.notes.map(pc => noteName(pc, s.root)).join(' – ');
     const diagram   = buildChordDiagram(chord, s.strings, s.tuning);
-    return `<div class="chord-card">
+    return `<div class="chord-card" data-chord-idx="${i}" title="Play chord">
       <div class="chord-roman">${chord.roman}</div>
       <div class="chord-symbol">${symbol}</div>
       <div class="chord-quality">${chord.quality}</div>
@@ -487,6 +487,69 @@ function buildChordsSection(s: AppState): string {
       <h2>Diatonic Chords</h2>
       <div class="chords-grid">${cards}</div>
     </section>`;
+}
+
+// ── Chord Playback ────────────────────────────────────────────────────────────
+
+const BASE_TUNING_MIDI = [40, 45, 50, 55, 59, 64]; // E2 A2 D3 G3 B3 e4, low to high
+
+function defaultTuningMidi(n: number): number[] {
+  if (n <= 6) return BASE_TUNING_MIDI.slice(BASE_TUNING_MIDI.length - n);
+  const result = [...BASE_TUNING_MIDI];
+  while (result.length < n) result.unshift(result[0] - 5);
+  return result;
+}
+
+function tuningToMidi(tuning: number[], strings: number): number[] {
+  const ref = defaultTuningMidi(strings);
+  return tuning.map((pc, i) => {
+    const defMidi = ref[i];
+    const defPc   = ((defMidi % 12) + 12) % 12;
+    const diff    = (((pc - defPc + 6) % 12 + 12) % 12) - 6;
+    return defMidi + diff;
+  });
+}
+
+function playChord(chord: Chord, strings: number, tuning: number[], cardEl?: HTMLElement | null): void {
+  const ctx = getAudioCtx();
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const voicing    = findVoicing(chord.notes, strings, tuning, chord.rootPc);
+  const midiTuning = tuningToMidi(tuning, strings);
+  const noteDur    = 0.9;
+  const strum      = 0.028;
+  const startDelay = 0.05;
+  const startTime  = ctx.currentTime;
+
+  let idx = 0;
+  let lastT = startTime + startDelay;
+  for (let si = 0; si < strings; si++) {
+    const f = voicing[si];
+    if (f === null) continue;
+
+    const t = startTime + startDelay + idx * strum;
+    idx++;
+    lastT = t;
+
+    const midi = midiTuning[si] + f;
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = midiToFreq(midi);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.22, t + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + noteDur);
+    osc.start(t);
+    osc.stop(t + noteDur + 0.02);
+  }
+
+  if (cardEl) {
+    cardEl.classList.add('chord-playing');
+    const totalMs = (lastT - startTime + noteDur) * 1000;
+    setTimeout(() => cardEl.classList.remove('chord-playing'), totalMs);
+  }
 }
 
 // ── Tuning Presets ───────────────────────────────────────────────────────────
@@ -693,6 +756,15 @@ function bindEvents(): void {
   });
 
   on('play-scale', 'click', () => { playScale(state.root, state.intervals); });
+
+  document.querySelectorAll<HTMLElement>('.chord-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const idx    = Number(card.dataset.chordIdx);
+      const chords = deriveScaleChords(state.root, state.intervals);
+      const chord  = chords[idx];
+      if (chord) playChord(chord, state.strings, state.tuning, card);
+    });
+  });
 
   on('fretboard-zoom', 'click', () => {
     fretboardZoomed = !fretboardZoomed;
